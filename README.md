@@ -1,32 +1,50 @@
-# Candidate kit
+# Employee Attendance & Analytics API
 
-Read in this order:
+This repository contains my submission for the HROne Software Engineer Trainee technical assignment.
 
-1. `PROBLEM_STATEMENT.docx`: what you are asked to do, how it is evaluated.
-2. `openapi.yaml`: the API contract and the business rules (R1 - R10).
-3. `DATA_MODEL.md`: what is stored in MongoDB, with nine sample documents.
-4. `app/main.py`: the starter. Put **all** your code in this one file. It must start with `uvicorn app.main:app --port 8000`.
-5. `REVIEW.md`, `DECISIONS.md`: templates to fill in.
+It is a complete Employee Attendance and Analytics API built with **FastAPI** and **MongoDB**. The application enforces business rules for punch-ins/outs, handles manual corrections with an audit trail, and provides robust analytics endpoints driven by native MongoDB aggregation pipelines.
 
-`sample_data/` holds the nine sample documents as MongoDB Extended JSON; `sample_seed.py` loads them. The grader's dataset is
-much larger and contains cases they do not show.
+## Features Implemented
+- **Full API Contract**: All endpoints defined in the OpenAPI specification are fully implemented.
+- **Robust Analytics**: Aggregations (like department summaries, daily trends with gap-filling, and late leaderboards) are executed natively inside MongoDB pipelines for optimal performance.
+- **Time & Concurrency**: Strict adherence to IST time zone rules, accurate overnight shift handling, and optimistic locking to prevent race conditions during concurrent punches or manual corrections.
+- **Data Integrity**: Enforced through PyMongo-level compound unique indexes.
 
-## Local setup
+## Documentation
+Please refer to the following files for my code review and technical rationale:
+- `REVIEW.md`: My observations and fixes regarding the provided starter code.
+- `DECISIONS.md`: The design decisions and optimizations made during implementation.
+
+## Local Setup
+
+**1. Create and activate a virtual environment:**
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .\.venv\Scripts\Activate.ps1
+```
+
+**2. Install dependencies:**
+```bash
 pip install -r requirements.txt
-cp .env.example .env            # set MONGO_URI / MONGO_DB (local docker: docker run -p 27017:27017 mongo:7)
+```
+
+**3. Configure Environment Variables:**
+Create a `.env` file in the root directory (do not commit this file) with your MongoDB credentials:
+```env
+MONGO_URI="mongodb+srv://<user>:<password>@cluster0..."
+MONGO_DB="attendance_db"
+```
+
+**4. Seed Sample Data:**
+```bash
 python sample_seed.py
+```
+
+**5. Run the Server:**
+```bash
 uvicorn app.main:app --port 8000 --reload
 ```
-MongoDB **6.0 or newer** is required (the grader uses 7.0). MongoDB Atlas free tier (M0) works.
+The API documentation (Swagger UI) will be available at: http://127.0.0.1:8000/docs
 
-## Submission Notes
-I have successfully implemented all endpoints and requirements as per the `openapi.yaml` and `PROBLEM_STATEMENT.docx`.
-- The full application logic resides in `app/main.py`.
-- MongoDB unique indexes are created automatically at startup.
-- All aggregations are performed natively in MongoDB (except where trivial Python calendar checks were simpler).
-- Optimistic locking was used to ensure data consistency during concurrent patches/punch-outs.
-- `DECISIONS.md` and `REVIEW.md` have been filled out with my rationale and observations.
-
-Thank you for this interesting challenge!
+---
+*Thank you for the opportunity to work on this interesting challenge!*
