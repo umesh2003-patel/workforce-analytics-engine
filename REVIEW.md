@@ -1,0 +1,10 @@
+# Code Review
+
+Here are my observations on the starter code provided in `app/main.py`:
+
+1. **Concurrency / Race Conditions**: The `punch_in` and `create_employee` endpoints use a check-then-insert pattern (e.g., `find_one` followed by `insert_one`). This is vulnerable to race conditions where two concurrent requests could both pass the check and insert duplicates. This should be fixed by relying on MongoDB unique indexes (e.g., `emp_code` for employees and a compound index on `emp_code` and `date` for attendance_logs) to enforce uniqueness atomically, handling the `DuplicateKeyError`.
+2. **Rounding Logic**: `compute_work_hours` uses Python's built-in `round()` function, which implements "banker's rounding" (half to even) instead of the required "half-up" rounding (e.g., 2.5 becomes 2 in built-in `round`, but should be 3). This must be fixed by using the `decimal` module (`ROUND_HALF_UP`).
+3. **Time Zone and Truncation Bugs**: The endpoints use naive `datetime.now()` or `datetime.fromtimestamp(..., tz=None)` which relies on the local server timezone, not strictly IST (UTC+05:30) as required by R1. Further, R1 requires time instants to be truncated to whole seconds before computation or storage, which is not being done.
+4. **Overnight Shifts**: `compute_late_minutes` and the punch-in date derivation do not correctly handle overnight shifts. If an employee punches in early for an overnight shift, it belongs to the previous calendar day. The starter code just uses the system's calendar date.
+5. **Epoch Milliseconds**: The starter code serialized `created_at` in the `create_employee` response as an ISO-8601 string, but the OpenAPI contract strictly requires Epoch milliseconds.
+6. **Inefficient Pagination**: `list_employees` and `list_attendance` count the total documents incorrectly and load the whole collection into memory before slicing, which will cause Out Of Memory errors and slow responses on a large (~100k records) dataset. They should use MongoDB's `.skip()`, `.limit()`, and `.count_documents(query)` natively.

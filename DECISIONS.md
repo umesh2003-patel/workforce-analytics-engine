@@ -1,0 +1,10 @@
+# Design Decisions
+
+1. **MongoDB Indexes**: I created three indexes idempotently at application startup:
+    * `employees`: A unique index on `emp_code` to enforce exactly one record per employee code, eliminating race conditions during employee creation.
+    * `attendance_logs`: A unique index on `emp_code` and `date` to enforce the constraint that an employee has at most one record per attendance day, ensuring concurrent punch-ins fail with 409 cleanly.
+    * `attendance_logs`: A compound index on `date` (descending) and `emp_code` (ascending) to guarantee that the `list_attendance` endpoint remains fast and avoids `COLLSCAN` during sorting and pagination.
+2. **Time and Timezones**: All points in time (punches) are converted from milliseconds into timezone-aware datetime objects in IST. They are then truncated to whole seconds immediately to conform with rule R1. To avoid PyMongo conversion ambiguities, these datetimes are converted to naive UTC before being inserted into the database. When retrieving them, they are treated as UTC, mapped back to IST, and serialized back to epoch milliseconds for the client.
+3. **Database Aggregations**: The analytics endpoints use native MongoDB aggregation pipelines (`$match`, `$group`, `$densify`, etc.). This shifts the heavy lifting and data crunching to the database level rather than fetching thousands of documents into the Python application memory. For instance, the gap-filling for department trends natively uses `$densify` rather than a manual loop in Python.
+4. **Rounding**: I adopted Python's `decimal` module (`Decimal.quantize` with `ROUND_HALF_UP`) wherever rounding was required (work hours, attendance percentages), since standard float math and `round()` do not fulfill the half-up requirement (R8).
+5. **Concurrency Management**: For regularization and punch-outs, I used atomic updates with PyMongo's `find_one_and_update` or carefully structured update filters to avoid race conditions. Punch-outs explicitly check for `{"punch_out": None}` to ensure only one concurrent punch-out succeeds.
