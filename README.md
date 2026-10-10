@@ -1,4 +1,4 @@
-# Employee Attendance & Analytics API
+# Work Analytic Engine
 
 This repository contains my submission for the HROne Software Engineer Trainee technical assignment.
 
